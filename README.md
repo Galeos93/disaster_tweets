@@ -92,6 +92,29 @@ Repository to work with "Natural Language Processing with Disaster Tweets" Kaggl
       └── ...
   ```
 
+## Environment loader
+
+An virtual environment based on `requirements.txt` is built. First you will
+need to install tox:
+
+```bash
+python -m pip install tox
+```
+
+To install and activate the virtual environment, do the following:
+
+```bash
+cd $PATH_TO_DIR
+tox
+source .tox/disaster_tweets/bin/activate
+```
+
+After you are done working with the environment, you can exit it:
+
+```bash
+deactivate
+```
+
 ## Usage
 The code in this repo is an MNIST example of the template.
 Try `python train.py -c config.json` to run code.
