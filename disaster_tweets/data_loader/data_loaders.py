@@ -1,5 +1,5 @@
-from numpy import dtype
 import pandas as pd
+
 import torch
 from torch.utils.data.dataloader import DataLoader
 from torchvision import datasets, transforms
@@ -20,6 +20,7 @@ class MnistDataLoader(BaseDataLoader):
         self.dataset = datasets.MNIST(self.data_dir, train=training, download=True, transform=trsfm)
         super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers)
 
+
 class DataPreprocessor:
     def __init__(self, tokenizer, vocab, postprocessor):
         self.tokenizer = tokenizer
@@ -33,20 +34,25 @@ class DataPreprocessor:
         return torch.cat(vectorized_sentences)
 
 
-
-class TweetDataLoader(DataLoader):
+class TweetDataset(DataLoader):
     """Loads Tweets from a DataFrame.
     
     Notes
     -----
-    The objective of class is:
-
-    (1) Convert the sentences into a series of tokens
-    (2) Convert these tokens into integers, which are part of a Vocabulary
-    (3) Postprocess the sentences so they have the same length?
-    (4) Batchify them    
+    The objective of class is preprocessing a series of tweets contained on
+    a CSV file so they can be introduced to a model. 
     
     """
-    def __init__(self, csv_path, data_preprocessor):
+    def __init__(self, csv_path, data_preprocessor, batch_size, device="cpu"):
         df = pd.read_csv(csv_path)
+        device = torch.device(device)
         data = data_preprocessor(df.text.tolist())
+        self.data = self.batchify(data, batch_size, device)
+
+    @staticmethod
+    def batchify(data, batch_size, device):
+        nbatch = data.size(0) // batch_size
+        data = data.narrow(0, 0, nbatch * batch_size)
+        data = data.view(batch_size, -1).t().contiguous()
+        return data.to(device)
+
