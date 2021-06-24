@@ -2,11 +2,24 @@ import pathlib
 
 import pandas as pd
 import pytest
+import torch
 from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator
 
 from disaster_tweets.data_loader import data_loaders
 from disaster_tweets import data
+from disaster_tweets.utils import nlp
+
+
+@pytest.fixture()
+def preprocessor():
+    def inner_fun(sentence):
+        sentence = nlp.tweet_cleaner(sentence)
+        sentence = sentence.lower()
+        sentence = nlp.remove_punct(sentence)
+        return sentence
+
+    return inner_fun
 
 
 class TestDataPreprocessor:
@@ -22,40 +35,48 @@ class TestDataPreprocessor:
 
     @staticmethod
     @pytest.mark.parametrize(
-        "tokenizer,expected_length", [(get_tokenizer("basic_english"), 18)]
+        "tokenizer,expected_length", [(get_tokenizer("basic_english"), 14)]
     )
     def test_given_sentences_output_tensor_has_correct_length(
         tokenizer,
         expected_length,
         sample_sentences,
+        preprocessor,
     ):
-        vocab = build_vocab_from_iterator(
-            map(tokenizer, sample_sentences), specials=["<unk>"]
+        data_preprocessor = data_loaders.DataPreprocessor(
+            tokenizer, preprocessor, lambda x: x
         )
-        data_preprocessor = data_loaders.DataPreprocessor(tokenizer, vocab, lambda x: x)
-        vectorized_sentences = data_preprocessor(sample_sentences)
-
-        assert len(vectorized_sentences) == expected_length
+        vectorized_sentences = list(data_preprocessor(sample_sentences))
+        assert len(sum(vectorized_sentences, [])) == expected_length
 
 
 class TestTweetDataset:
-    @staticmethod
-    @pytest.fixture(scope="class")
-    def data_preprocessor(vocab):
-        return data_loaders.DataPreprocessor(
-            tokenizer=get_tokenizer("basic_english"),
-        )
+    """Test TweetDataset class.
+
+    Notes
+    -----
+
+    The Tweets undergo the
+    following transformations:
+
+    1. [x] Tweet cleaner: Emoji removal, url removal, hash removal, etc.
+    2. [x] Uppercase to lowercase
+    3. [x] Remove punctuation
+    4. [ ] Spelling correction
+    5. [ ] Stopword removal
+    6. [x] Tokenizer
+
+    """
 
     @staticmethod
-    def test_given_real_tweets_output_is_correct():
+    def test_given_real_tweets_output_is_correct(preprocessor):
         tweets_csv = (pathlib.Path("disaster_tweets") / "data" / "train.csv").resolve()
         tweets_df = pd.read_csv(tweets_csv)
         tokenizer = get_tokenizer("basic_english")
-        vocab = build_vocab_from_iterator(
-            map(tokenizer, tweets_df.text.tolist()), specials=["<unk>"]
-        )
         data_preprocessor = data_loaders.DataPreprocessor(
-            tokenizer=tokenizer, vocab=vocab, postprocessor=lambda x: x
+            tokenizer=tokenizer,
+            preprocessor=preprocessor,
+            postprocessor=lambda x: x,
         )
-        dataset = data_loaders.TweetDataset(tweets_csv, data_preprocessor, 32)
-        assert dataset.data.shape[-1] == 32
+        dataset = data_loaders.TweetDataset(tweets_csv, data_preprocessor)
+        assert len(dataset) == len(tweets_df)
