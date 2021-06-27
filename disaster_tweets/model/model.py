@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from base import BaseModel
@@ -20,3 +21,18 @@ class MnistModel(BaseModel):
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
+
+
+class LinearModel(nn.Module):
+    def __init__(self, embedding_size, vocab):
+        super(LinearModel, self).__init__()
+        self.embedding_layer = nn.EmbeddingBag(len(vocab), embedding_size)
+        self.dense_0 = nn.Linear(embedding_size, 10)
+        self.dense_1 = nn.Linear(10, 1)
+
+    def forward(self, inputs):
+        inputs, offsets = inputs
+        embeddings = self.embedding_layer(inputs, offsets) # B, E
+        outputs = self.dense_0(embeddings)
+        outputs = self.dense_1(outputs)
+        return outputs
