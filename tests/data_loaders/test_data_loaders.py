@@ -4,10 +4,8 @@ import pandas as pd
 import pytest
 import torch
 from torchtext.data.utils import get_tokenizer
-from torchtext.vocab import build_vocab_from_iterator
 
 from disaster_tweets.data_loader import data_loaders
-from disaster_tweets import data
 from disaster_tweets.utils import nlp
 
 
@@ -79,4 +77,11 @@ class TestTweetDataset:
             postprocessor=lambda x: x,
         )
         dataset = data_loaders.TweetDataset(tweets_csv, data_preprocessor)
+        
+        assert len(dataset[0]) == 3
+        assert len(dataset[0][1]) > 0
+        assert isinstance(dataset[0][0], torch.Tensor)
+        assert isinstance(dataset[0][1], torch.Tensor)
+        assert isinstance(dataset[0][2], torch.Tensor)
+        assert len(dataset[0][1]) == dataset[0][-1]
         assert len(dataset) == len(tweets_df)
