@@ -26,7 +26,6 @@ class TestLinearModel:
             vocab=vocab,
         )
         with torch.no_grad():
-            for _, sentence, offset in data_iterable:
-                outputs = model_instance((sentence, offset))
-                assert len(outputs) == 32
-                break        
+            _, sentence, offset = next(data_iterable)
+            outputs = model_instance((sentence, offset))
+            len(outputs) == 32      

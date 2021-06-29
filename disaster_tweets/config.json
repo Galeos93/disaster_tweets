@@ -1,15 +1,43 @@
 {
-    "name": "Mnist_LeNet",
+    "name": "BaselineLinearModel",
     "n_gpu": 1,
-
     "arch": {
-        "type": "MnistModel",
+        "type": "LinearModel",
         "args": {}
     },
-    "data_loader": {
+    "train_processor": {
+        "type": "BasicDataPreprocessor",
+        "args": {}
+    },
+    "val_processor": {
+        "type": "BasicDataPreprocessor",
+        "args": {}
+    },
+    "train_dataset": {
+        "type": "disaster_tweets.data_loader.data_loaders.TweetDataset",
+        "args": {
+            "csv_path": "/home/agarcia/repos/disaster_tweets/disaster_tweets/data/train.csv"
+        }
+    },
+    "val_dataset": {
+        "type": "disaster_tweets.data_loader.data_loaders.TweetDataset",
+        "args": {
+            "csv_path": "/home/agarcia/repos/disaster_tweets/disaster_tweets/data/test.csv"
+        }
+    },
+    "train_data_loader": {
         "type": "MnistDataLoader",
-        "args":{
-            "data_dir": "data/",
+        "args": {
+            "batch_size": 128,
+            "shuffle": true,
+            "validation_split": 0.1,
+            "num_workers": 2
+        }
+    },
+    "val_data_loader": {
+        "type": "MnistDataLoader",
+        "args": {
+            "dataset": "data/",
             "batch_size": 128,
             "shuffle": true,
             "validation_split": 0.1,
@@ -18,7 +46,7 @@
     },
     "optimizer": {
         "type": "Adam",
-        "args":{
+        "args": {
             "lr": 0.001,
             "weight_decay": 0,
             "amsgrad": true
@@ -26,7 +54,8 @@
     },
     "loss": "nll_loss",
     "metrics": [
-        "accuracy", "top_k_acc"
+        "accuracy",
+        "top_k_acc"
     ],
     "lr_scheduler": {
         "type": "StepLR",
@@ -37,14 +66,11 @@
     },
     "trainer": {
         "epochs": 100,
-
         "save_dir": "saved/",
         "save_period": 1,
         "verbosity": 2,
-        
         "monitor": "min val_loss",
         "early_stop": 10,
-
         "tensorboard": true
     }
 }

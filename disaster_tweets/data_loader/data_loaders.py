@@ -1,10 +1,13 @@
-import pandas as pd
+from dataclasses import dataclass
+import typing
 
+import pandas as pd
 import torch
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset
 from torchtext.vocab import build_vocab_from_iterator
 from torchvision import datasets, transforms
+from torchtext.data.utils import get_tokenizer
 
 from base import BaseDataLoader
 
@@ -35,16 +38,28 @@ class MnistDataLoader(BaseDataLoader):
         )
 
 
-class DataPreprocessor:
-    def __init__(self, tokenizer, preprocessor, postprocessor):
-        self.tokenizer = tokenizer
-        self.postprocessor = postprocessor
-        self.preprocessor = preprocessor
+@dataclass
+class _BaseDataPreprocessor:
+    """This class transforms an iterable of sentences.
+
+    Notes
+    -----
+    The sentences fed to the class instance will be preprocessed, tokenized
+    and postprocessed. These three stages and configurable.
+
+    """
+
+    tokenizer: typing.Callable[[str], typing.List[str]] = None
+    preprocessor: typing.Callable[[str], str] = lambda x: x
 
     def __call__(self, sentences_iter):
         sentences_iter = [self.preprocessor(sentence) for sentence in sentences_iter]
         tokenized_sentences = (self.tokenizer(x) for x in sentences_iter)
         return tokenized_sentences
+
+
+class BasicDataPreprocessor(_BaseDataPreprocessor):
+    tokenizer: get_tokenizer("basic_english")
 
 
 class TweetDataset(Dataset):
