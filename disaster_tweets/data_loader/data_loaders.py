@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import functools
 import typing
 
 import pandas as pd
@@ -10,6 +11,7 @@ from torchvision import datasets, transforms
 from torchtext.data.utils import get_tokenizer
 
 from base import BaseDataLoader
+from disaster_tweets.utils import nlp
 
 
 class MnistDataLoader(BaseDataLoader):
@@ -38,6 +40,13 @@ class MnistDataLoader(BaseDataLoader):
         )
 
 
+def basic_tweet_preprocessor(sentence):
+    sentence = nlp.tweet_cleaner(sentence)
+    sentence = sentence.lower()
+    sentence = nlp.remove_punct(sentence)
+    return sentence
+
+
 @dataclass
 class _BaseDataPreprocessor:
     """This class transforms an iterable of sentences.
@@ -58,8 +67,20 @@ class _BaseDataPreprocessor:
         return tokenized_sentences
 
 
+@dataclass
 class BasicDataPreprocessor(_BaseDataPreprocessor):
-    tokenizer: get_tokenizer("basic_english")
+    tokenizer: typing.Callable[[str], typing.List[str]] = get_tokenizer("basic_english")
+    preprocessor: typing.Callable[[str], str] = basic_tweet_preprocessor
+
+
+class VocabBuilder:
+    @classmethod
+    def from_iterator(cls, csv_path, data_preprocessor):
+        df = pd.read_csv(csv_path)
+        tokenized_sentences = list(data_preprocessor(df.text.tolist()))
+        vocab = build_vocab_from_iterator(tokenized_sentences, specials=["<unk>"])
+        vocab.set_default_index(vocab["<unk>"])
+        return vocab
 
 
 class TweetDataset(Dataset):
@@ -72,16 +93,15 @@ class TweetDataset(Dataset):
 
     """
 
-    def __init__(self, csv_path, data_preprocessor):
+    def __init__(self, csv_path, data_preprocessor, vocab):
         df = pd.read_csv(csv_path)
         tokenized_sentences = list(data_preprocessor(df.text.tolist()))
-        self.vocab = build_vocab_from_iterator(tokenized_sentences, specials=["<unk>"])
+        self.vocab = vocab
         sequences = [
             torch.tensor(self.vocab(x), dtype=torch.long) for x in tokenized_sentences
         ]
         labels = torch.tensor(df.target.astype(int))
-        offsets = torch.tensor([len(x) for x in sequences])
-        self.data = list(zip(labels, sequences, offsets))
+        self.data = list(zip(labels, sequences))
 
     def __len__(self):
         return len(self.data)
@@ -91,3 +111,22 @@ class TweetDataset(Dataset):
             idx = idx.tolist()
 
         return self.data[idx]
+
+
+def collate_batch(batch):
+    label_list, text_list, offsets = [], [], [0]
+    for (_label, _text) in batch:
+        label_list.append(_label)
+        text_list.append(_text)
+        offsets.append(_text.size(0))
+    label_list = torch.tensor(label_list, dtype=torch.float)
+    label_list = torch.unsqueeze(label_list, dim=1)
+    offsets = torch.tensor(offsets[:-1]).cumsum(dim=0)
+    text_list = torch.cat(text_list)
+    return label_list, text_list, offsets
+
+
+tweet_data_loader = functools.partial(
+    DataLoader,
+    collate_fn=functools.partial(collate_batch),
+)

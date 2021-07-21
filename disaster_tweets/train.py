@@ -26,12 +26,19 @@ def main(config):
     train_processor = config.init_obj("train_processor", module_data)
     val_processor = config.init_obj("val_processor", module_data)
 
+    vocab = module_data.VocabBuilder.from_iterator(
+        config["train_dataset"]["args"]["csv_path"],
+        train_processor,
+    )
+
+    # TODO: Force vocab to set out of vocab as UNK!!
+
     # setup dataset instances
     train_dataset = config.init_obj(
-        "train_dataset", module_data, data_preprocessor=train_processor
+        "train_dataset", module_data, data_preprocessor=train_processor, vocab=vocab
     )
     val_dataset = config.init_obj(
-        "val_dataset", module_data, data_preprocessor=val_processor
+        "val_dataset", module_data, data_preprocessor=val_processor, vocab=vocab
     )
 
     # setup data_loader instances
@@ -43,7 +50,7 @@ def main(config):
     )
 
     # build model architecture, then print to console
-    model = config.init_obj("arch", module_arch)
+    model = config.init_obj("arch", module_arch, vocab=train_dataset.vocab)
     logger.info(model)
 
     # prepare for (multi-device) GPU training

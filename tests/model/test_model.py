@@ -11,9 +11,10 @@ def data_iterable():
     def inner_gen():
         while True:
             yield labels, sentences, offsets
+
     labels = torch.tensor(np.ones(32))
     sentences = torch.tensor(np.random.randint(low=0, high=128, size=32 * 3))
-    offsets = torch.tensor(range(0, 32*3, 3))    
+    offsets = torch.tensor(range(0, 32 * 3, 3))
     return inner_gen()
 
 
@@ -28,4 +29,4 @@ class TestLinearModel:
         with torch.no_grad():
             _, sentence, offset = next(data_iterable)
             outputs = model_instance((sentence, offset))
-            len(outputs) == 32      
+            len(outputs) == 32

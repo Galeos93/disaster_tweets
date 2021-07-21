@@ -3,7 +3,9 @@
     "n_gpu": 1,
     "arch": {
         "type": "LinearModel",
-        "args": {}
+        "args": {
+            "embedding_size": 32
+        }
     },
     "train_processor": {
         "type": "BasicDataPreprocessor",
@@ -14,34 +16,31 @@
         "args": {}
     },
     "train_dataset": {
-        "type": "disaster_tweets.data_loader.data_loaders.TweetDataset",
+        "type": "TweetDataset",
         "args": {
-            "csv_path": "/home/agarcia/repos/disaster_tweets/disaster_tweets/data/train.csv"
+            "csv_path": "/home/agarcia/repos/disaster_tweets/disaster_tweets/data/train_split.csv"
         }
     },
     "val_dataset": {
-        "type": "disaster_tweets.data_loader.data_loaders.TweetDataset",
+        "type": "TweetDataset",
         "args": {
-            "csv_path": "/home/agarcia/repos/disaster_tweets/disaster_tweets/data/test.csv"
+            "csv_path": "/home/agarcia/repos/disaster_tweets/disaster_tweets/data/val_split.csv"
         }
     },
     "train_data_loader": {
-        "type": "MnistDataLoader",
+        "type": "tweet_data_loader",
         "args": {
             "batch_size": 128,
             "shuffle": true,
-            "validation_split": 0.1,
-            "num_workers": 2
+            "num_workers": 0
         }
     },
     "val_data_loader": {
-        "type": "MnistDataLoader",
+        "type": "tweet_data_loader",
         "args": {
-            "dataset": "data/",
             "batch_size": 128,
-            "shuffle": true,
-            "validation_split": 0.1,
-            "num_workers": 2
+            "shuffle": false,
+            "num_workers": 0
         }
     },
     "optimizer": {
@@ -52,10 +51,9 @@
             "amsgrad": true
         }
     },
-    "loss": "nll_loss",
+    "loss": "binary_cross_entropy",
     "metrics": [
-        "accuracy",
-        "top_k_acc"
+        "accuracy"
     ],
     "lr_scheduler": {
         "type": "StepLR",
