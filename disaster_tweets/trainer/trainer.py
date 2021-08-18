@@ -39,13 +39,13 @@ class Trainer(BaseTrainer):
         """
         self.model.train()
         self.train_metrics.reset()
-        for batch_idx, (target, data, offsets) in enumerate(self.data_loader):
-            data = data.to(self.device)
+        for batch_idx, data in enumerate(self.data_loader):
+            target = data[0]
             target = target.to(self.device)
-            offsets = offsets.to(self.device)
 
             self.optimizer.zero_grad()
-            output = self.model([data, offsets])
+            output = self.model(*[x.to(self.device) for x in data[1:]])
+            
             loss = self.criterion(output, target)
             loss.backward()
             self.optimizer.step()
@@ -84,12 +84,12 @@ class Trainer(BaseTrainer):
         self.model.eval()
         self.valid_metrics.reset()
         with torch.no_grad():
-            for batch_idx, (target, data, offsets) in enumerate(self.valid_data_loader):
-                data = data.to(self.device)
+            for batch_idx, data in enumerate(self.valid_data_loader):
+                target = data[0]
                 target = target.to(self.device)
-                offsets = offsets.to(self.device)
 
-                output = self.model([data, offsets])
+                self.optimizer.zero_grad()
+                output = self.model(*[x.to(self.device) for x in data[1:]])
                 loss = self.criterion(output, target)
 
                 self.writer.set_step((epoch - 1) * len(self.valid_data_loader) + batch_idx, 'valid')

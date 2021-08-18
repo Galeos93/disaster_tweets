@@ -30,9 +30,53 @@ class LinearModel(nn.Module):
         self.dense_0 = nn.Linear(embedding_size, 10)
         self.dense_1 = nn.Linear(10, 1)
 
-    def forward(self, inputs):
-        inputs, offsets = inputs
-        embeddings = self.embedding_layer(inputs, offsets) # B, E
+    def forward(self, inputs, offsets):
+        embeddings = self.embedding_layer(inputs, offsets)  # B, E
         outputs = self.dense_0(embeddings)
         outputs = self.dense_1(outputs)
         return outputs
+
+
+class CNNModel(nn.Module):
+    def __init__(self, embedding_size, vocab):
+        super(CNNModel, self).__init__()
+        self.embedding_layer = nn.Embedding(len(vocab), embedding_size)
+        self.conv_1d_16 = nn.Conv1d(embedding_size, 18, kernel_size=16)
+        self.conv_1d_8 = nn.Conv1d(embedding_size, 9, kernel_size=8)
+        self.conv_1d_4 = nn.Conv1d(embedding_size, 5, kernel_size=4)
+        self.max_pool_1 = nn.AdaptiveMaxPool1d(1)
+        self.max_pool_2 = nn.AdaptiveMaxPool1d(1)
+        self.max_pool_3 = nn.AdaptiveMaxPool1d(1)
+        self.dropout_1 = nn.Dropout(p=0.4)
+        self.dropout_2 = nn.Dropout(p=0.4)
+        self.dropout_3 = nn.Dropout(p=0.4)
+        # Classifier
+        self.dense_1 = nn.Linear(embedding_size, 1)
+
+    def forward(self, x):
+        # Input: L, B, 1
+        # Transformation: L*B, 1
+        length, batch_size = x.shape
+        x = x.view(-1, 1)
+        x = self.embedding_layer(x)
+        # Back to original dimension: L, B, E
+        x = x.view(length, batch_size, -1)
+        # Reshape to B, E, L
+        x = x.transpose(0, 1)
+        x = x.transpose(1, 2)
+        x_1 = self.conv_1d_4(x)  # Requires B, E, L. Returns B, E_1, L_1
+        x_2 = self.conv_1d_8(x)  # Requires B, E, L. Returns B, E_2, L_2
+        x_3 = self.conv_1d_16(x)  # Requires B, E, L. Returns B, E_3, L_3
+
+        x_1 = self.dropout_1(x_1)
+        x_2 = self.dropout_1(x_2)
+        x_3 = self.dropout_1(x_3)
+
+        x_1 = self.max_pool_1(x_1)  # Returns B, E_1
+        x_2 = self.max_pool_2(x_2)  # Returns B, E_2
+        x_3 = self.max_pool_3(x_3)  # Returns B, E_3
+
+        x = torch.cat((x_1, x_2, x_3), dim=1)  # Returns B, E, L_1 + L_2 + L_3
+        x = torch.squeeze(x)
+        x = self.dense_1(x)
+        return x

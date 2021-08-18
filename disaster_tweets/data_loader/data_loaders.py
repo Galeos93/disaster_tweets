@@ -4,6 +4,7 @@ import typing
 
 import pandas as pd
 import torch
+from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset
 from torchtext.vocab import build_vocab_from_iterator
@@ -126,7 +127,20 @@ def collate_batch(batch):
     return label_list, text_list, offsets
 
 
+def zero_padding_collate(batch):
+    label_list, text_list = list(zip(*batch))
+    label_list = torch.tensor(label_list, dtype=torch.float)
+    label_list = torch.unsqueeze(label_list, dim=1)  # L, 1
+    text_list = pad_sequence(text_list) # L, B
+    return label_list, text_list
+
+
 tweet_data_loader = functools.partial(
     DataLoader,
     collate_fn=functools.partial(collate_batch),
+)
+
+zero_pad_tweet_data_loader = functools.partial(
+    DataLoader,
+    collate_fn=functools.partial(zero_padding_collate),
 )
