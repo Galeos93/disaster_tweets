@@ -80,3 +80,23 @@ class CNNModel(nn.Module):
         x = torch.squeeze(x)
         x = self.dense_1(x)
         return x
+
+
+class LSTMModel(nn.Module):
+    def __init__(self, embedding_size, vocab):
+        super(LSTMModel, self).__init__()
+        self.embedding_layer = nn.Embedding(len(vocab), embedding_size)
+        self.lstm = nn.LSTM(embedding_size, embedding_size * 2, 1)
+        self.dense_0 = nn.Linear(embedding_size * 2, 10)
+        self.avg_pooling = nn.AdaptiveAvgPool1d(1)
+        self.dense_1 = nn.Linear(64, 1)
+
+    def forward(self, x):
+        length, batch_size = x.shape
+        x = x.view(-1, 1)
+        x = self.embedding_layer(x)
+        x = x.view(length, batch_size, -1)
+        output, (hn, cn) = self.lstm(x)
+        x = torch.mean(output, 0)
+        x = self.dense_1(x)
+        return x

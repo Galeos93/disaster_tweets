@@ -85,3 +85,21 @@ class TestCNNModel:
         assert activations["max_pool_3"].shape == (batch_size, 18, 1)
 
         assert output.shape == (8, 1)
+
+
+class TestLSTMModel:
+    @staticmethod
+    def test_given_data_output_shape_is_correct():
+        batch_size = 8
+        length = 16
+        embedding_size = 32
+
+        vocab = list(range(128))
+        model_instance = model.LSTMModel(
+            embedding_size=embedding_size,
+            vocab=vocab,
+        )
+        input = torch.randint(0, 128, size=(length, batch_size))
+        with torch.no_grad():
+            outputs = model_instance(input)
+            assert outputs.shape == (8, 1)
